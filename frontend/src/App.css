@@ -44,11 +44,30 @@ body {
 .logo-section h1 {
   margin: 0;
   font-size: 22px;
-  background: linear-gradient(135deg, #667eea, #4ecdc4);
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* "Fake Review" — red → orange gradient */
+.title-fake {
+  background: linear-gradient(135deg, #ff4757 0%, #ff6b35 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  font-weight: 700;
+  font-weight: 800;
+}
+
+/* "Detector" — purple → cyan gradient */
+.title-detector {
+  background: linear-gradient(135deg, #667eea 0%, #4ecdc4 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 800;
 }
 
 .logout-btn {

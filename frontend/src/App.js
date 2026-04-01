@@ -287,8 +287,25 @@ function App() {
       <header className="main-header">
         <div className="header-content">
           <div className="logo-section">
-            <ShieldLoginIcon size={32} color="#667eea" />
-            <h1>Fake Review Detector</h1>
+            {/* Custom Fake Review Detector Icon */}
+            <svg width="36" height="36" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
+              <defs>
+                <linearGradient id="hGlass" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#667eea"/>
+                  <stop offset="100%" stopColor="#764ba2"/>
+                </linearGradient>
+              </defs>
+              <polygon points="32,6 36,20 51,20 39.5,29 43.5,43 32,34 20.5,43 24.5,29 13,20 28,20"
+                       fill="#f6c90e" opacity="0.9"/>
+              <line x1="17" y1="11" x2="47" y2="47" stroke="#e74c3c" strokeWidth="5.5" strokeLinecap="round"/>
+              <line x1="47" y1="11" x2="17" y2="47" stroke="#e74c3c" strokeWidth="5.5" strokeLinecap="round"/>
+              <circle cx="26" cy="26" r="13" fill="none" stroke="url(#hGlass)" strokeWidth="4"/>
+              <line x1="36" y1="36" x2="54" y2="54" stroke="url(#hGlass)" strokeWidth="4.5" strokeLinecap="round"/>
+            </svg>
+            <h1>
+              <span className="title-fake">Fake Review</span>{" "}
+              <span className="title-detector">Detector</span>
+            </h1>
           </div>
           <button onClick={handleLogout} className="logout-btn">
             Logout
