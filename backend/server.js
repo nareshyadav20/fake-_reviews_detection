@@ -1,4 +1,5 @@
 // server.js
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
@@ -10,12 +11,19 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const SECRET_KEY = "supersecretkey";
+const SECRET_KEY = process.env.SECRET_KEY || "supersecretkey";
 
 // ===== MongoDB Connection =====
-mongoose.connect("mongodb://127.0.0.1:27017/fake_review_users")
-  .then(() => console.log("MongoDB connected"))
-  .catch(err => console.error("MongoDB connection error:", err));
+console.log("Attempting to connect to MongoDB Atlas...");
+mongoose.connect(process.env.MONGO_URI, {
+  serverSelectionTimeoutMS: 5000 // 5 seconds timeout to fail fast
+})
+  .then(() => console.log("✅ SUCCESS: MongoDB connected to Atlas!"))
+  .catch(err => {
+    console.error("❌ ERROR: Failed to connect to MongoDB Atlas.");
+    console.error("Please check your MONGO_URI in .env and ensure your IP is whitelisted in MongoDB Atlas.");
+    console.error("Details:", err.message);
+  });
 
 // ===== User Schema =====
 const userSchema = new mongoose.Schema({
@@ -24,6 +32,19 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
 });
 const User = mongoose.model("User", userSchema);
+
+// ===== Review Schema =====
+const reviewSchema = new mongoose.Schema({
+  username: { type: String, required: true },
+  review: { type: String, required: true },
+  prediction: { type: String, required: true },
+  confidence: { type: Number, required: true },
+  reasons: { type: [String] },
+  conclusion: { type: String },
+  is_generic: { type: Boolean },
+  timestamp: { type: Date, default: Date.now },
+});
+const Review = mongoose.model("Review", reviewSchema);
 
 // ===== Middleware to verify JWT =====
 function verifyToken(req, res, next) {
@@ -108,6 +129,66 @@ app.post("/predict", verifyToken, async (req, res) => {
       reasons: [],
       is_generic: false
     });
+  }
+});
+
+// ===== Save Review Route =====
+app.post("/save", verifyToken, async (req, res) => {
+  try {
+    const { review, prediction, confidence, reasons, conclusion, is_generic } = req.body;
+    const newReview = new Review({
+      username: req.user.username,
+      review,
+      prediction,
+      confidence,
+      reasons,
+      conclusion,
+      is_generic
+    });
+    await newReview.save();
+    res.json({ message: "Review saved successfully!" });
+  } catch (err) {
+    console.error("Error saving review:", err);
+    res.status(500).json({ message: "Failed to save review" });
+  }
+});
+
+// ===== History Route =====
+app.get("/history", verifyToken, async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const total = await Review.countDocuments({ username: req.user.username });
+    const history = await Review.find({ username: req.user.username })
+      .sort({ timestamp: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    res.json({
+      history,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page,
+      totalCount: total
+    });
+  } catch (err) {
+    console.error("Error fetching history:", err);
+    res.status(500).json({ message: "Failed to fetch history" });
+  }
+});
+
+// ===== Analytics Route =====
+app.get("/analytics", verifyToken, async (req, res) => {
+  try {
+    const totalReviews = await Review.countDocuments({ username: req.user.username });
+    const fakeCount = await Review.countDocuments({ username: req.user.username, prediction: "Likely Fake" });
+    const genuineCount = totalReviews - fakeCount;
+    
+    res.json({ totalReviews, fakeCount, genuineCount });
+  } catch (err) {
+    console.error("Error fetching analytics:", err);
+    res.status(500).json({ message: "Failed to fetch analytics" });
   }
 });
 
