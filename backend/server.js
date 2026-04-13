@@ -3,7 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
+const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const axios = require("axios");
 const { spawn } = require("child_process");
@@ -31,7 +31,7 @@ app.use(
 app.use(express.json());
 
 const SECRET_KEY = process.env.SECRET_KEY || "supersecretkey";
-const ML_PORT   = process.env.ML_PORT || 6000;
+const ML_PORT = process.env.ML_PORT || 6000;
 
 // ===== Spawn Python Flask ML Service =====
 function startMLService() {
@@ -74,7 +74,7 @@ mongoose
 
 // ===== User Schema =====
 const userSchema = new mongoose.Schema({
-  name:     { type: String, required: true },
+  name: { type: String, required: true },
   username: { type: String, unique: true, required: true },
   password: { type: String, required: true },
 });
@@ -82,14 +82,14 @@ const User = mongoose.model("User", userSchema);
 
 // ===== Review Schema =====
 const reviewSchema = new mongoose.Schema({
-  username:   { type: String, required: true },
-  review:     { type: String, required: true },
+  username: { type: String, required: true },
+  review: { type: String, required: true },
   prediction: { type: String, required: true },
   confidence: { type: Number, required: true },
-  reasons:    { type: [String] },
+  reasons: { type: [String] },
   conclusion: { type: String },
   is_generic: { type: Boolean },
-  timestamp:  { type: Date, default: Date.now },
+  timestamp: { type: Date, default: Date.now },
 });
 const Review = mongoose.model("Review", reviewSchema);
 
@@ -158,7 +158,7 @@ app.post("/predict", verifyToken, async (req, res) => {
       prediction: response.data.prediction,
       confidence: response.data.confidence,
       conclusion: response.data.conclusion,
-      reasons:    response.data.reasons,
+      reasons: response.data.reasons,
       is_generic: response.data.is_generic,
     });
   } catch (err) {
@@ -191,11 +191,11 @@ app.post("/save", verifyToken, async (req, res) => {
 // ===== History Route =====
 app.get("/history", verifyToken, async (req, res) => {
   try {
-    const page  = parseInt(req.query.page)  || 1;
+    const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const skip  = (page - 1) * limit;
+    const skip = (page - 1) * limit;
 
-    const total   = await Review.countDocuments({ username: req.user.username });
+    const total = await Review.countDocuments({ username: req.user.username });
     const history = await Review.find({ username: req.user.username })
       .sort({ timestamp: -1 })
       .skip(skip)
@@ -211,9 +211,9 @@ app.get("/history", verifyToken, async (req, res) => {
 // ===== Analytics Route =====
 app.get("/analytics", verifyToken, async (req, res) => {
   try {
-    const totalReviews  = await Review.countDocuments({ username: req.user.username });
-    const fakeCount     = await Review.countDocuments({ username: req.user.username, prediction: "Likely Fake" });
-    const genuineCount  = totalReviews - fakeCount;
+    const totalReviews = await Review.countDocuments({ username: req.user.username });
+    const fakeCount = await Review.countDocuments({ username: req.user.username, prediction: "Likely Fake" });
+    const genuineCount = totalReviews - fakeCount;
     res.json({ totalReviews, fakeCount, genuineCount });
   } catch (err) {
     console.error("Error fetching analytics:", err);

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import Login from "./components/Login";
 import Signup from "./components/Signup";
-import { ShieldLoginIcon, ShoppingIcon } from "./components/LoginIcons";
+import { ShoppingIcon } from "./components/LoginIcons";
 import "./App.css";
 
 // ── AI Explanation Generator ──────────────────────────────────────
