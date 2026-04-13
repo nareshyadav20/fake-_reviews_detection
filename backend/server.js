@@ -110,14 +110,14 @@ app.post("/predict", verifyToken, async (req, res) => {
   try {
     const response = await axios.post("http://localhost:6000/predict", { review });
 
-    console.log("ML Service Response:", response.data); // Debug logging
+    console.log("ML Service Response:", response.data);
 
     res.json({
       prediction: response.data.prediction,
       confidence: response.data.confidence,
-      conclusion: response.data.conclusion,   // ⭐ AI conclusion text
-      reasons: response.data.reasons,         // ⭐ updated
-      is_generic: response.data.is_generic    // ⭐ added
+      conclusion: response.data.conclusion,
+      reasons: response.data.reasons,
+      is_generic: response.data.is_generic
     });
 
   } catch (err) {
@@ -194,7 +194,7 @@ app.get("/analytics", verifyToken, async (req, res) => {
 
 // ===== Test Route =====
 app.get("/", (req, res) => {
-  res.send("Backend server running!");
+  res.send("Backend server running with MongoDB!");
 });
 
 // ===== Start Server =====

@@ -102,7 +102,7 @@ def predict():
         
     # Genuine indicators (lower priority to avoid conflicts)
     if features['specific_count'] >= 3:
-        genuine_score += 3
+        genuine_score += 2
     elif features['specific_count'] >= 1:
         genuine_score += 1
         
@@ -182,7 +182,9 @@ def predict():
     return jsonify({
         "prediction": classification,
         "confidence": round(confidence, 1),
-        "conclusion": conclusion
+        "conclusion": conclusion,
+        "reasons": reasons,
+        "is_generic": features['specific_count'] == 0
     })
 
 if __name__ == "__main__":

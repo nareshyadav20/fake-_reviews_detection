@@ -3,6 +3,7 @@ import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
+from transformers import BertModel, BertTokenizer
 from sklearn.metrics import accuracy_score, classification_report
 import pickle
 import re
