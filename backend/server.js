@@ -15,6 +15,7 @@ const app = express();
 const allowedOrigins = [
   process.env.FRONTEND_URL || "http://localhost:3000",
   "https://fake-review-detector.vercel.app",
+  "https://fake-reviews-detection-zeta.vercel.app",
 ];
 app.use(
   cors({
