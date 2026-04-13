@@ -222,9 +222,10 @@ function App() {
     }
 
     setLoading(true);
+    const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5001";
     try {
       const res = await axios.post(
-        "http://localhost:5000/predict",
+        `${API_URL}/predict`,
         { review },
         { headers: { Authorization: `Bearer ${token}` } }
       );

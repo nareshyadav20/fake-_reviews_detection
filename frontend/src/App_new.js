@@ -25,7 +25,7 @@ function App() {
     }
 
     try {
-      const res = await axios.post("http://localhost:5000/signup", {
+      const res = await axios.post("http://localhost:5001/signup", {
         name, username, password
       });
       alert("Signup successful! Please login with your new account.");
@@ -43,7 +43,7 @@ function App() {
     }
 
     try {
-      await axios.post("http://localhost:5000/login", {
+      await axios.post("http://localhost:5001/login", {
         username, password
       });
 
@@ -74,7 +74,7 @@ function App() {
     try {
 
       const res = await axios.post(
-        "http://localhost:5000/predict",
+        "http://localhost:5001/predict",
         { review },
         { headers: { Authorization: `Bearer ${token}` } }
       );
