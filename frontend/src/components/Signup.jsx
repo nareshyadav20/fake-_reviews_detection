@@ -18,8 +18,8 @@ const Signup = ({ onSignupSuccess, onSwitchToLogin }) => {
 
     setLoading(true);
     try {
-      const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5001";
-      await axios.post(`${API_URL}/signup`, {
+      const API = process.env.REACT_APP_API_URL || "http://localhost:5001";
+      await axios.post(`${API}/signup`, {
         name, username, password
       });
       alert("Signup successful! Please login with your new account.");

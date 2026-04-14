@@ -223,14 +223,12 @@ function App() {
 
     setLoading(true);
     setLoading(true);
-    // Standardizing API URL - process.env.REACT_APP_API_URL should be set in Vercel for production
-    const API_URL = (process.env.REACT_APP_API_URL || "http://localhost:5001").replace(/\/$/, "");
-    console.log(`🌐 API Source: ${process.env.REACT_APP_API_URL ? "Environment Variable" : "Local Default"}`);
-    console.log(`🚀 Requesting: ${API_URL}/predict`);
+    const API = process.env.REACT_APP_API_URL || "http://localhost:5001";
+    console.log(`🚀 Requesting: ${API}/predict`);
 
     try {
       const res = await axios.post(
-        `${API_URL}/predict`,
+        `${API}/predict`,
         { review },
         { 
           headers: { Authorization: `Bearer ${token}` },

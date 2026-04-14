@@ -17,8 +17,8 @@ const Login = ({ onLoginSuccess, onSwitchToSignup }) => {
 
     setLoading(true);
     try {
-      const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5001";
-      const res = await axios.post(`${API_URL}/login`, {
+      const API = process.env.REACT_APP_API_URL || "http://localhost:5001";
+      const res = await axios.post(`${API}/login`, {
         username, password
       });
 
