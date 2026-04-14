@@ -11,22 +11,39 @@ const path = require("path");
 
 const app = express();
 
-// ===== CORS — allow Vercel frontend =====
+// ===== CORS — allow local and production frontends =====
 const allowedOrigins = [
-  process.env.FRONTEND_URL || "http://localhost:3000",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
   "https://fake-review-detector.vercel.app",
   "https://fake-reviews-detection-zeta.vercel.app",
-];
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin || allowedOrigins.some((o) => origin.startsWith(o.replace(/\/$/, "")))) {
+      // Allow requests with no origin (like mobile apps or curl)
+      if (!origin) return callback(null, true);
+
+      // Clean the origin for comparison (remove trailing slash)
+      const cleanOrigin = origin.replace(/\/$/, "");
+
+      const isAllowed = allowedOrigins.some((allowed) => {
+        const cleanAllowed = allowed.replace(/\/$/, "");
+        return cleanOrigin === cleanAllowed;
+      });
+
+      if (isAllowed) {
         callback(null, true);
       } else {
+        console.warn(`CORS blocked for origin: ${origin}`);
         callback(new Error("Not allowed by CORS"));
       }
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 app.use(express.json());
