@@ -223,18 +223,23 @@ function App() {
 
     setLoading(true);
     const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5001";
+    console.log("🚀 Starting analysis at:", API_URL + "/predict");
+
     try {
       const res = await axios.post(
         `${API_URL}/predict`,
         { review },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { 
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 15000 // 15s timeout
+        }
       );
 
       const pred = res.data.prediction;
       const conf = res.data.confidence;
       const conclusionText = res.data.conclusion;
 
-      console.log("Backend response:", { pred, conf, conclusionText });
+      console.log("✅ Analysis successful:", { pred, conf });
 
       setPrediction(pred);
       setConfidence(conf);
@@ -250,8 +255,25 @@ function App() {
         ...history,
       ]);
     } catch (err) {
-      console.error(err);
-      alert("Analysis failed. Please try again.");
+      console.error("❌ Analysis failed details:", {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data,
+        config: err.config
+      });
+
+      let errorMsg = "Analysis failed. Please try again.";
+      if (err.response) {
+        if (err.response.status === 401 || err.response.status === 403) {
+          errorMsg = "Session expired or invalid. Please Logout and Login again.";
+        } else if (err.response.data?.message) {
+          errorMsg = `Error: ${err.response.data.message}`;
+        }
+      } else if (err.request) {
+        errorMsg = "Network Error: Could not reach the backend. Ensure it is running on port 5001.";
+      }
+
+      alert(errorMsg);
     } finally {
       setLoading(false);
     }

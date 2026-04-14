@@ -114,13 +114,25 @@ const Review = mongoose.model("Review", reviewSchema);
 // ===== JWT Middleware =====
 function verifyToken(req, res, next) {
   const authHeader = req.headers["authorization"];
-  if (!authHeader) return res.status(401).json({ message: "No token provided" });
+  console.log("Incoming request to:", req.path, "with authHeader:", authHeader ? "Present" : "Missing");
+
+  if (!authHeader) {
+    console.error("❌ Auth Error: No token provided");
+    return res.status(401).json({ message: "No token provided" });
+  }
 
   const token = authHeader.split(" ")[1];
-  if (!token) return res.status(401).json({ message: "Invalid token" });
+  if (!token) {
+    console.error("❌ Auth Error: Invalid token format");
+    return res.status(401).json({ message: "Invalid token" });
+  }
 
   jwt.verify(token, SECRET_KEY, (err, decoded) => {
-    if (err) return res.status(403).json({ message: "Failed to authenticate token" });
+    if (err) {
+      console.error("❌ JWT Verify Error:", err.message);
+      return res.status(403).json({ message: "Failed to authenticate token: " + err.message });
+    }
+    console.log("✅ Token verified for user:", decoded.username);
     req.user = decoded;
     next();
   });
@@ -164,14 +176,15 @@ app.post("/login", async (req, res) => {
 // ===== Predict Route (calls internal Flask service) =====
 app.post("/predict", verifyToken, async (req, res) => {
   const { review } = req.body;
+  console.log("Analyzing review:", review ? review.substring(0, 50) + "..." : "EMPTY");
+  
   try {
-    // Wait up to 5 s for Flask to be ready on first cold start
     const response = await axios.post(
       `http://127.0.0.1:${ML_PORT}/predict`,
       { review },
       { timeout: 10000 }
     );
-    console.log("ML Service Response:", response.data);
+    console.log("✅ ML Service Response received");
     res.json({
       prediction: response.data.prediction,
       confidence: response.data.confidence,
@@ -180,9 +193,14 @@ app.post("/predict", verifyToken, async (req, res) => {
       is_generic: response.data.is_generic,
     });
   } catch (err) {
-    console.error("Error calling ML API:", err.message);
+    console.error("❌ Error calling ML API:", err.message);
+    if (err.response) {
+      console.error("   Response Data:", err.response.data);
+      console.error("   Response Status:", err.response.status);
+    }
     res.status(500).json({
       prediction: "Error detecting review",
+      message: "ML Service Error: " + err.message,
       confidence: 0,
       reasons: [],
       is_generic: false,
