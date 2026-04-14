@@ -3,7 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const axios = require("axios");
 const { spawn } = require("child_process");
@@ -261,5 +261,5 @@ app.get("/", (req, res) => {
 });
 
 // ===== Start Server =====
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001; // Support Render's dynamic port assignment
 app.listen(PORT, () => console.log(`🚀 Backend running on port ${PORT}`));
