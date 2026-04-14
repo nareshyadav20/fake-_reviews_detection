@@ -11,13 +11,36 @@ const path = require("path");
 
 const app = express();
 
+// Add request logging middleware to debug incoming connections
+app.use((req, res, next) => {
+  console.log(`📡 [${new Date().toISOString()}] ${req.method} ${req.url} | Origin: ${req.headers.origin || "None"}`);
+  next();
+});
+
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:5173",
-      "https://fake-reviews-detection-zeta.vercel.app"
-    ],
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl)
+      if (!origin) return callback(null, true);
+
+      const allowedOriginPatterns = [
+        /^http:\/\/localhost:\d+$/,
+        /^http:\/\/127\.0\.0\.1:\d+$/,
+        /\.vercel\.app$/,
+        /fake-review-detector\.vercel\.app$/
+      ];
+
+      const isAllowed = allowedOriginPatterns.some(pattern => 
+        pattern instanceof RegExp ? pattern.test(origin) : origin === pattern
+      );
+
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        console.warn(`🚫 CORS blocked for origin: ${origin}`);
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
