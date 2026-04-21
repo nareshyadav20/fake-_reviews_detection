@@ -30,7 +30,7 @@ app.use(
         /fake-review-detector\.vercel\.app$/
       ];
 
-      const isAllowed = allowedOriginPatterns.some(pattern => 
+      const isAllowed = allowedOriginPatterns.some(pattern =>
         pattern instanceof RegExp ? pattern.test(origin) : origin === pattern
       );
 
@@ -175,7 +175,7 @@ app.post("/login", async (req, res) => {
 app.post("/predict", verifyToken, async (req, res) => {
   const { review } = req.body;
   console.log("Analyzing review:", review ? review.substring(0, 50) + "..." : "EMPTY");
-  
+
   try {
     const response = await axios.post(
       `http://127.0.0.1:${ML_PORT}/predict`,

@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Login from "./components/Login";
 import Signup from "./components/Signup";
 import { ShoppingIcon } from "./components/LoginIcons";
+import ModelCharts from "./components/ModelCharts";
 import "./App.css";
 
 // ── AI Explanation Generator ──────────────────────────────────────
@@ -76,67 +77,94 @@ function generateAIExplanation(reviewText, isFake, confidence) {
     if (foundSpecific.length >= 1) {
       const sample = [...new Set(foundSpecific)].slice(0, 3).join('", "');
       points.push({
-        icon: "✅",
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="24" height="24" rx="6" fill="#2ed573" fillOpacity="0.2"/>
+            <path d="M17 8L10 15L7 12" stroke="#2ed573" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        ),
         text: `Mentions specific product details ("${sample}") indicating real first-hand experience.`,
       });
     }
     if (wordCount >= 10) {
       points.push({
-        icon: "📝",
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="24" height="24" rx="6" fill="#667eea" fillOpacity="0.2"/>
+            <path d="M12 19H5C4.44772 19 4 18.5523 4 18V6C4 5.44772 4.44772 5 5 5H19C19.5523 5 20 5.44772 20 6V13" stroke="#667eea" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M12 15H8" stroke="#667eea" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M16 11H8" stroke="#667eea" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        ),
         text: `Detailed review length (${wordCount} words) — authentic users tend to write thorough feedback.`,
       });
     }
     if (exclamationCount <= 1) {
       points.push({
-        icon: "💬",
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="24" height="24" rx="6" fill="#a55eea" fillOpacity="0.2"/>
+            <path d="M21 11.5C21 16.1944 16.9706 20 12 20C10.7937 20 9.64294 19.7825 8.5986 19.3879C5.6961 21.0592 3.65545 20.9153 3.65545 20.9153C3.65545 20.9153 4.88768 18.892 4.67503 17.4819C3.61906 15.8647 3 13.7844 3 11.5C3 6.80558 7.02944 3 12 3C16.9706 3 21 6.80558 21 11.5Z" stroke="#a55eea" strokeWidth="2" strokeLinejoin="round"/>
+          </svg>
+        ),
         text: "Balanced emotional tone — does not rely on excessive punctuation to convey enthusiasm.",
       });
     }
     if (foundExaggerated.length <= 1) {
       points.push({
-        icon: "⚖️",
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="24" height="24" rx="6" fill="#fbc531" fillOpacity="0.2"/>
+            <path d="M12 3V21" stroke="#fbc531" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M5 9L12 3L19 9" stroke="#fbc531" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M4 14H20" stroke="#fbc531" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <circle cx="7" cy="18" r="3" stroke="#fbc531" strokeWidth="2"/>
+            <circle cx="17" cy="18" r="3" stroke="#fbc531" strokeWidth="2"/>
+          </svg>
+        ),
         text: "Uses measured, balanced language rather than exaggerated or promotional terms.",
-      });
-    }
-    if (reviewText.includes("but") || reviewText.includes("however") || reviewText.includes("although")) {
-      points.push({
-        icon: "🔄",
-        text: "Contains balanced pros and cons — a hallmark of authentic user feedback.",
-      });
-    }
-    if (points.length === 0) {
-      points.push({
-        icon: "✅",
-        text: "The writing style and language patterns are consistent with genuine customer feedback.",
       });
     }
   }
 
-  const summary = isFake
-    ? "This review exhibits patterns commonly associated with fabricated or promotional content."
-    : "This review demonstrates characteristics of an authentic, experience-based customer opinion.";
-
-  return { points, summary };
+  return points;
 }
 
-function App() {
-  const [token, setToken] = useState("");
-  const [view, setView] = useState("login"); // 'login', 'signup', 'dashboard'
 
-  // Dashboard state
+function App() {
+  const [view, setView] = useState("login");
   const [review, setReview] = useState("");
   const [prediction, setPrediction] = useState("");
   const [confidence, setConfidence] = useState(0);
+  const [reasons, setReasons] = useState([]);
   const [conclusion, setConclusion] = useState("");
-  const [history, setHistory] = useState([]);
+  const [isFake, setIsFake] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [history, setHistory] = useState([]);
+  const [token, setToken] = useState(localStorage.getItem("token") || "");
+  const [modelMetrics, setModelMetrics] = useState(null);
 
-  const handleLoginSuccess = (userToken) => {
-    setToken(userToken);
-    setView("dashboard");
+  // Fetch benchmark model metrics
+  const fetchModelMetrics = async (userToken) => {
+    const API = process.env.REACT_APP_API_URL || "http://localhost:5002";
+    try {
+      const res = await axios.get(`${API}/model-metrics`, {
+        headers: { Authorization: `Bearer ${userToken}` }
+      });
+      setModelMetrics(res.data);
+    } catch (err) {
+      console.error("Failed to fetch model metrics:", err);
+    }
   };
 
+  useEffect(() => {
+    if (token) {
+      fetchModelMetrics(token);
+    }
+  }, [token]);
+
   const handleLogout = () => {
+    localStorage.removeItem("token");
     setToken("");
     setView("login");
     setPrediction("");
@@ -188,105 +216,52 @@ function App() {
       "The tablet works fine for basic tasks but the screen could be brighter.",
       "I bought this keyboard last week and the typing experience is comfortable.",
       "The watch arrived on time and the fitness tracking features are accurate.",
-      "After three weeks of use, the camera performance exceeds expectations.",
-      "The speaker provides clear sound but the bass could be stronger.",
-      "This mouse is ergonomic and works well for long gaming sessions.",
-      "The monitor has good color accuracy but the stand is wobbly.",
-      "I've had this router for two months and the connection is stable.",
-      "The tablet's performance is smooth for daily use and browsing.",
-      "These headphones are comfortable for extended wear but the noise cancellation is average.",
-      "The camera takes decent photos in daylight but struggles in low light.",
     ];
 
-    const allReviews = [...fakeReviews, ...genuineReviews];
-    const randomReview =
-      allReviews[Math.floor(Math.random() * allReviews.length)];
-
-    setReview(randomReview);
-
-    setTimeout(() => {
-      detectReview();
-    }, 500);
+    const all = [...fakeReviews, ...genuineReviews];
+    setReview(all[Math.floor(Math.random() * all.length)]);
   };
 
-  const detectReview = async () => {
-    if (!token) {
-      alert("Please login first");
-      setView("login");
-      return;
-    }
+  const handleLoginSuccess = (newToken) => {
+    setToken(newToken);
+    localStorage.setItem("token", newToken);
+    setView("dashboard");
+    fetchModelMetrics(newToken);
+  };
 
-    if (!review.trim()) {
-      alert("Please enter a review");
-      return;
-    }
-
+  const handlePredict = async () => {
+    if (!review.trim()) return;
     setLoading(true);
-    setLoading(true);
-    const API = process.env.REACT_APP_API_URL || "http://localhost:5001";
-    console.log(`🚀 Requesting: ${API}/predict`);
+    const API = process.env.REACT_APP_API_URL || "http://localhost:5002";
 
     try {
       const res = await axios.post(
         `${API}/predict`,
         { review },
-        { 
-          headers: { Authorization: `Bearer ${token}` },
-          timeout: 15000 // 15s timeout
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      const pred = res.data.prediction;
-      const conf = res.data.confidence;
-      const conclusionText = res.data.conclusion;
+      const isFakeResult = res.data.prediction === "Likely Fake";
+      setPrediction(res.data.prediction);
+      setConfidence(res.data.confidence);
+      setConclusion(res.data.conclusion);
+      setIsFake(isFakeResult);
+      setReasons(generateAIExplanation(review, isFakeResult, res.data.confidence));
 
-      console.log("✅ Analysis successful:", { pred, conf });
-
-      setPrediction(pred);
-      setConfidence(conf);
-      setConclusion(conclusionText);
-
-      setHistory([
-        {
-          review,
-          prediction: pred,
-          confidence: conf,
-          timestamp: new Date().toLocaleTimeString(),
-        },
-        ...history,
-      ]);
+      const newHistoryItem = {
+        review,
+        prediction: res.data.prediction,
+        confidence: res.data.confidence,
+        timestamp: new Date().toLocaleString(),
+      };
+      setHistory([newHistoryItem, ...history]);
     } catch (err) {
-      console.error("❌ Analysis failed details:", {
-        message: err.message,
-        status: err.response?.status,
-        data: err.response?.data,
-        config: err.config
-      });
-
-      let errorMsg = "Analysis failed. Please try again.";
-      if (err.response) {
-        if (err.response.status === 401 || err.response.status === 403) {
-          errorMsg = "Session expired or invalid. Please Logout and Login again.";
-        } else if (err.response.data?.message) {
-          errorMsg = `Error: ${err.response.data.message}`;
-        }
-      } else if (err.request) {
-        errorMsg = "Network Error: Could not reach the backend. Ensure it is running on port 5001.";
-      }
-
-      alert(errorMsg);
+      console.error("Prediction error:", err);
+      alert("Failed to analyze review. Ensure backend is running.");
     } finally {
       setLoading(false);
     }
   };
-
-  const isFake = prediction === "Likely Fake";
-
-  // Generate AI explanation when we have a prediction
-  const aiExplanation =
-    prediction && review
-      ? generateAIExplanation(review, isFake, confidence)
-      : null;
 
   if (view === "login") {
     return (
@@ -311,20 +286,33 @@ function App() {
       <header className="main-header">
         <div className="header-content">
           <div className="logo-section">
-            {/* Custom Fake Review Detector Icon */}
-            <svg width="36" height="36" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
+            <svg width="42" height="42" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
               <defs>
-                <linearGradient id="hGlass" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#667eea"/>
-                  <stop offset="100%" stopColor="#764ba2"/>
+                <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#667eea" />
+                  <stop offset="100%" stopColor="#764ba2" />
                 </linearGradient>
+                <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur in="SourceAlpha" stdDeviation="2" />
+                  <feOffset dx="1" dy="1" result="offsetblur" />
+                  <feComponentTransfer>
+                    <feFuncA type="linear" slope="0.3" />
+                  </feComponentTransfer>
+                  <feMerge>
+                    <feMergeNode />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
               </defs>
-              <polygon points="32,6 36,20 51,20 39.5,29 43.5,43 32,34 20.5,43 24.5,29 13,20 28,20"
-                       fill="#f6c90e" opacity="0.9"/>
-              <line x1="17" y1="11" x2="47" y2="47" stroke="#e74c3c" strokeWidth="5.5" strokeLinecap="round"/>
-              <line x1="47" y1="11" x2="17" y2="47" stroke="#e74c3c" strokeWidth="5.5" strokeLinecap="round"/>
-              <circle cx="26" cy="26" r="13" fill="none" stroke="url(#hGlass)" strokeWidth="4"/>
-              <line x1="36" y1="36" x2="54" y2="54" stroke="url(#hGlass)" strokeWidth="4.5" strokeLinecap="round"/>
+              <circle cx="32" cy="32" r="28" fill="url(#logoGrad)" opacity="0.1" />
+              <path d="M32 8L36 24H52L40 34L44 50L32 40L20 50L24 34L12 24H28L32 8Z" 
+                    fill="#f6c90e" filter="url(#shadow)" />
+              <g transform="translate(18, 18) scale(0.6)">
+                <circle cx="20" cy="20" r="18" fill="none" stroke="#fff" strokeWidth="4" />
+                <line x1="32" y1="32" x2="44" y2="44" stroke="#fff" strokeWidth="5" strokeLinecap="round" />
+                <line x1="10" y1="10" x2="30" y2="30" stroke="#ff4757" strokeWidth="4" strokeLinecap="round" />
+                <line x1="30" y1="10" x2="10" y2="30" stroke="#ff4757" strokeWidth="4" strokeLinecap="round" />
+              </g>
             </svg>
             <h1>
               <span className="title-fake">Fake Review</span>{" "}
@@ -340,35 +328,31 @@ function App() {
       <main className="dashboard-container">
         <section className="hero-section">
           <div className="hero-content">
-            <ShoppingIcon size={48} color="#667eea" />
+            <ShoppingIcon />
             <h2>Analyze Customer Reviews</h2>
-            <p>
-              Paste a review below to detect if it's genuine or potentially fake
-              using our AI model.
-            </p>
+            <p>Paste a review below to detect if it's genuine or potentially fake using our AI model.</p>
           </div>
         </section>
 
-        <div className="analysis-grid">
+        <div className={`analysis-grid ${prediction ? "has-prediction" : ""}`}>
           <div className="input-card">
             <h3>New Analysis</h3>
             <textarea
-              rows="6"
-              placeholder="Paste product review text here..."
+              placeholder="Enter review text here..."
               value={review}
               onChange={(e) => setReview(e.target.value)}
             />
             <div className="button-row">
               <button
-                onClick={detectReview}
                 className="analyze-btn"
+                onClick={handlePredict}
                 disabled={loading}
               >
                 {loading ? "Analyzing..." : "Detect Review"}
               </button>
               <button
-                onClick={generateRandomReview}
                 className="random-btn"
+                onClick={generateRandomReview}
                 disabled={loading}
               >
                 🎲 Random Review
@@ -379,8 +363,8 @@ function App() {
           {prediction && (
             <div className={`result-card ${isFake ? "fake" : "genuine"}`}>
               <div className="result-header">
-                <span className="result-icon">{isFake ? "🔴" : "🟢"}</span>
-                <h3>{isFake ? "Likely Fake" : "Likely Genuine"}</h3>
+                <div className="result-icon">{isFake ? "🔴" : "🟢"}</div>
+                <h3>{prediction}</h3>
               </div>
 
               <div className="confidence-meter">
@@ -394,79 +378,46 @@ function App() {
                 </div>
               </div>
 
-              {/* ── AI Analysis Card ────────────────────────────── */}
-              {aiExplanation && (
-                <div className="ai-analysis-card">
-                  <div className="ai-analysis-header">
-                    <span className="ai-icon">🤖</span>
-                    <h4>AI Analysis</h4>
-                  </div>
-
-                  <p className="ai-summary">{aiExplanation.summary}</p>
-
-                  <ul className="ai-points">
-                    {aiExplanation.points.map((pt, idx) => (
-                      <li key={idx} className="ai-point">
-                        <span className="ai-point-icon">{pt.icon}</span>
-                        <span className="ai-point-text">{pt.text}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {conclusion && (
-                    <div className="model-conclusion">
-                      <strong>Model Conclusion:</strong> {conclusion}
-                    </div>
-                  )}
+              <div className="ai-analysis-card">
+                <div className="ai-analysis-header">
+                  <span className="ai-icon">🤖</span>
+                  <h4>AI Analysis</h4>
                 </div>
-              )}
+                <p className="ai-summary">
+                  This review demonstrates characteristics of an {isFake ? "artificial" : "authentic"}, {isFake ? "templated" : "experience-based"} customer opinion.
+                </p>
+                <ul className="ai-points">
+                  {reasons.map((r, idx) => (
+                    <li key={idx} className="ai-point">
+                      <span className="ai-point-icon">{r.icon}</span>
+                      <span className="ai-point-text">{r.text}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="model-conclusion">
+                  <strong>Model Conclusion:</strong> {conclusion}
+                </div>
+              </div>
 
-              {/* Performance Metrics Table */}
+              {/* ── Professional Metrics Cards (From Image) ──────────────────── */}
               {calculateMetrics() && (
-                <div className="metrics-section">
-                  <h4>Model Performance Metrics</h4>
-                  <div className="metrics-grid">
-                    <div className="metric-card">
-                      <div className="metric-label">Accuracy</div>
-                      <div className="metric-value">
-                        {calculateMetrics().accuracy.toFixed(1)}%
-                      </div>
-                      <div className="metric-bar">
-                        <div
-                          className="metric-fill accuracy"
-                          style={{
-                            width: `${calculateMetrics().accuracy}%`,
-                          }}
-                        ></div>
-                      </div>
+                <div className="live-metrics-container">
+                  <div className="metrics-label-header">MODEL PERFORMANCE METRICS</div>
+                  <div className="metrics-cards-grid">
+                    <div className="p-metric-card accuracy">
+                      <div className="p-label">ACCURACY</div>
+                      <div className="p-value">{calculateMetrics().accuracy.toFixed(1)}%</div>
+                      <div className="p-accent-bar"></div>
                     </div>
-                    <div className="metric-card">
-                      <div className="metric-label">Precision</div>
-                      <div className="metric-value">
-                        {calculateMetrics().precision.toFixed(1)}%
-                      </div>
-                      <div className="metric-bar">
-                        <div
-                          className="metric-fill precision"
-                          style={{
-                            width: `${calculateMetrics().precision}%`,
-                          }}
-                        ></div>
-                      </div>
+                    <div className="p-metric-card precision">
+                      <div className="p-label">PRECISION</div>
+                      <div className="p-value">{calculateMetrics().precision.toFixed(1)}%</div>
+                      <div className="p-accent-bar"></div>
                     </div>
-                    <div className="metric-card">
-                      <div className="metric-label">Recall</div>
-                      <div className="metric-value">
-                        {calculateMetrics().recall.toFixed(1)}%
-                      </div>
-                      <div className="metric-bar">
-                        <div
-                          className="metric-fill recall"
-                          style={{
-                            width: `${calculateMetrics().recall}%`,
-                          }}
-                        ></div>
-                      </div>
+                    <div className="p-metric-card recall">
+                      <div className="p-label">RECALL</div>
+                      <div className="p-value">{calculateMetrics().recall.toFixed(1)}%</div>
+                      <div className="p-accent-bar"></div>
                     </div>
                   </div>
                 </div>
@@ -475,23 +426,51 @@ function App() {
           )}
         </div>
 
+        {/* ── Model Insights Section (New Graphs) ──────────────────── */}
+        <section className="model-insights-section">
+          <div className="section-header">
+            <h3>{prediction ? "📊 Live Analysis Insights" : "📈 Model Comparative Analysis"}</h3>
+            <p>
+              {prediction 
+                ? "Real-time performance metrics and confidence scoring for the current review analysis."
+                : "Advanced metrics comparing multiple ML architectures and their performance on benchmark datasets."}
+            </p>
+          </div>
+          <ModelCharts 
+            data={modelMetrics} 
+            liveMetrics={calculateMetrics()} 
+            prediction={prediction} 
+          />
+        </section>
+
         {history.length > 0 && (
           <section className="history-section">
             <h3>Recent Analysis History</h3>
-            <div className="history-list">
-              {history.map((h, i) => (
-                <div key={i} className="history-item">
-                  <div className="history-meta">
-                    <span
-                      className={`status-badge ${h.prediction.toLowerCase()}`}
-                    >
-                      {h.prediction}
-                    </span>
-                    <span className="timestamp">{h.timestamp}</span>
-                  </div>
-                  <p className="history-text">{h.review}</p>
-                </div>
-              ))}
+            <div className="history-table-container">
+              <table className="history-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Prediction</th>
+                    <th>Confidence</th>
+                    <th>Review Content</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.map((h, i) => (
+                    <tr key={i}>
+                      <td className="timestamp-cell">{h.timestamp}</td>
+                      <td>
+                        <span className={`status-badge ${h.prediction.toLowerCase()}`}>
+                          {h.prediction}
+                        </span>
+                      </td>
+                      <td className="confidence-cell">{h.confidence}%</td>
+                      <td className="review-cell">{h.review}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </section>
         )}
